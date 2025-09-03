@@ -127,7 +127,11 @@ const connectDatabase = async () => {
 
 // 12. Importar y usar rutas
 const authRoutes = require('./src/routes/auth');
+const verificationRoutes = require('./src/routes/verification'); // ← NUEVA LÍNEA
+
+// Usar rutas
 app.use('/api/auth', authRoutes);
+app.use('/api/verification', verificationRoutes); // ← NUEVA LÍNEA
 
 // 13. Manejo de errores global
 app.use((err, req, res, next) => {

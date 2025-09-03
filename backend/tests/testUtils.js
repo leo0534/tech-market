@@ -1,12 +1,14 @@
-const { User } = require('../src/models');
+const { User, Verification } = require('../src/models'); // ← Añadir /src/
 
-// Limpiar base de datos antes de cada test
+// Limpiar base de datos completamente
 const clearDatabase = async () => {
   try {
+    await Verification.deleteMany({});
     await User.deleteMany({});
-    console.log('✅ Base de datos limpiada para tests');
+    console.log('✅ Base de datos limpiada completamente');
   } catch (error) {
     console.error('❌ Error cleaning database:', error);
+    throw error;
   }
 };
 
@@ -42,6 +44,10 @@ const getAuthToken = async (app, userCredentials = null) => {
   const response = await require('supertest')(app)
     .post('/api/auth/login')
     .send(credentials);
+
+  if (response.status !== 200) {
+    throw new Error(`Login failed: ${JSON.stringify(response.body)}`);
+  }
 
   return response.body.data.accessToken;
 };

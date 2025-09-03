@@ -23,15 +23,16 @@ const verificationSchema = new mongoose.Schema({
     required: true,
     select: false // Solo accessible explícitamente
   },
-  // Datos cifrados para máxima seguridad
+  // Datos cifrados para máxima seguridad (ahora no requerido)
   encryptedData: {
     type: String,
-    required: true,
-    select: false
+    required: false, // ← CAMBIADO: ya no es requerido
+    select: false,
+    default: null    // ← Añadido valor por defecto
   },
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected', 'expired'],
+    enum: ['pending', 'approved', 'rejected', 'expired', 'pending_otp'],
     default: 'pending'
   },
   verificationMethod: {
