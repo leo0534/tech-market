@@ -4,8 +4,7 @@ import Modal from '../common/Modal';
 
 class LoginForm {
   constructor() {
-    this.render();
-    this.setupEventListeners();
+    this.initialized = false;
   }
 
   render() {
@@ -43,8 +42,13 @@ class LoginForm {
   }
 
   setupEventListeners() {
-    const form = document.getElementById('login-form');
-    form.addEventListener('submit', this.handleSubmit.bind(this));
+    if (!this.initialized) {
+      const form = document.getElementById('login-form');
+      if (form) {
+        form.addEventListener('submit', this.handleSubmit.bind(this));
+      }
+      this.initialized = true;
+    }
   }
 
   async handleSubmit(e) {
@@ -90,6 +94,18 @@ class LoginForm {
       submitBtn.disabled = false;
       submitBtn.innerHTML = 'Iniciar Sesión';
     }
+  }
+
+  init() {
+    this.setupEventListeners();
+  }
+
+  destroy() {
+    const form = document.getElementById('login-form');
+    if (form) {
+      form.removeEventListener('submit', this.handleSubmit.bind(this));
+    }
+    this.initialized = false;
   }
 }
 

@@ -30,6 +30,7 @@ const authenticate = async (req, res, next) => {
 
     // Añadir usuario al request
     req.user = user;
+    req.userId = user._id; // Añadir userId para compatibilidad
     next();
   } catch (error) {
     return res.status(401).json({

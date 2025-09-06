@@ -2,7 +2,7 @@ import { isAuthenticated, getCurrentUser } from '../utils/auth';
 
 class HomePage {
   constructor() {
-    this.render();
+    this.initialized = false;
   }
 
   render() {
@@ -23,13 +23,13 @@ class HomePage {
             </p>
             ${!isAuth ? `
               <div class="d-flex gap-3">
-                <a href="/register" class="btn btn-primary btn-lg">Comenzar ahora</a>
-                <a href="/login" class="btn btn-outline-primary btn-lg">Iniciar sesión</a>
+                <a href="/register" data-link class="btn btn-primary btn-lg">Comenzar ahora</a>
+                <a href="/login" data-link class="btn btn-outline-primary btn-lg">Iniciar sesión</a>
               </div>
             ` : `
               <div class="d-flex gap-3">
-                <a href="/products" class="btn btn-primary btn-lg">Ver productos</a>
-                <a href="/create-product" class="btn btn-outline-primary btn-lg">Publicar producto</a>
+                <a href="/products" data-link class="btn btn-primary btn-lg">Ver productos</a>
+                <a href="/create-product" data-link class="btn btn-outline-primary btn-lg">Publicar producto</a>
               </div>
             `}
           </div>
@@ -84,12 +84,21 @@ class HomePage {
                 <h5 class="mb-1">¡Verifica tu cuenta!</h5>
                 <p class="mb-0">Completa la verificación de identidad para acceder a todas las funcionalidades.</p>
               </div>
-              <a href="/verification" class="btn btn-warning ms-auto">Verificar ahora</a>
+              <a href="/verification" data-link class="btn btn-warning ms-auto">Verificar ahora</a>
             </div>
           </div>
         ` : ''}
       </div>
     `;
+  }
+
+  init() {
+    // No necesita event listeners especiales
+    this.initialized = true;
+  }
+
+  destroy() {
+    this.initialized = false;
   }
 }
 

@@ -2,15 +2,30 @@ import LoginForm from '../components/auth/LoginForm';
 
 class LoginPage {
   constructor() {
-    this.render();
+    this.loginForm = new LoginForm();
+    this.initialized = false;
   }
 
   render() {
     return `
       <div class="container py-5">
-        ${new LoginForm().render()}
+        ${this.loginForm.render()}
       </div>
     `;
+  }
+
+  init() {
+    if (!this.initialized) {
+      this.loginForm.init();
+      this.initialized = true;
+    }
+  }
+
+  destroy() {
+    if (this.initialized && this.loginForm.destroy) {
+      this.loginForm.destroy();
+    }
+    this.initialized = false;
   }
 }
 

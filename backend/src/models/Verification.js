@@ -9,10 +9,9 @@ const verificationSchema = new mongoose.Schema({
   },
   documentType: {
     type: String,
-    enum: ['cedula_colombiana'],
+    enum: ['cedula_colombiana', 'cedula_extranjeria', 'pasaporte'],
     default: 'cedula_colombiana'
   },
-  // Hash del número de documento (no almacenamos el número real)
   documentHash: {
     type: String,
     required: true,
@@ -21,57 +20,51 @@ const verificationSchema = new mongoose.Schema({
   documentNumber: {
     type: String,
     required: true,
-    select: false // Solo accessible explícitamente
+    select: false
   },
-  // Datos cifrados para máxima seguridad (ahora no requerido)
-  encryptedData: {
-    type: String,
-    required: false, // ← CAMBIADO: ya no es requerido
-    select: false,
-    default: null    // ← Añadido valor por defecto
+  // Campos para almacenar datos extraídos de la cédula
+  extractedData: {
+    firstName: String,
+    lastName: String,
+    documentNumber: String,
+    issueDate: Date,
+    expirationDate: Date,
+    confidence: Number // Nivel de confianza de la extracción
   },
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected', 'expired', 'pending_otp'],
+    enum: ['pending', 'approved', 'rejected', 'pending_review'], // ELIMINADO: 'expired', 'pending_otp'
     default: 'pending'
   },
   verificationMethod: {
     type: String,
-    enum: ['manual', 'api_kyc', 'otp'],
-    default: 'manual'
+    enum: ['manual', 'api_kyc', 'ocr'], // ELIMINADO: 'otp'
+    default: 'ocr'
   },
-  // Metadata de la verificación
   verificationDate: {
     type: Date
-  },
-  verifiedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
   },
   rejectionReason: {
     type: String,
     trim: true
-  },
-  // Para verificación por OTP
-  otpCode: {
-    type: String,
-    select: false
-  },
-  otpExpires: {
-    type: Date,
-    select: false
   },
   attempts: {
     type: Number,
     default: 0,
     max: 5
   },
-  // Selfie y documento
-  selfieImage: {
-    type: String // URL o path a la imagen
+  // Imágenes de la cédula
+  frontImage: {
+    type: String,
+    required: true
   },
-  documentImage: {
-    type: String // URL o path a la imagen
+  backImage: {
+    type: String,
+    required: true
+  },
+  // Selfie para comparación facial (opcional)
+  selfieImage: {
+    type: String
   }
 }, {
   timestamps: true
@@ -81,15 +74,63 @@ const verificationSchema = new mongoose.Schema({
 verificationSchema.index({ userId: 1 });
 verificationSchema.index({ documentHash: 1 });
 verificationSchema.index({ status: 1, createdAt: 1 });
-verificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 * 30 }); // Auto-borrar después de 30 días
 
-// Método para generar hash del documento
-verificationSchema.methods.generateDocumentHash = function(documentNumber) {
-  const salt = process.env.DOCUMENT_SALT || 'default_salt_change_in_production';
-  return crypto
-    .createHash('sha256')
-    .update(documentNumber + salt)
-    .digest('hex');
+// Método para comparar con datos del usuario
+verificationSchema.methods.compareWithUserData = function(user) {
+  const similarities = {};
+  
+  if (this.extractedData.firstName && user.firstName) {
+    similarities.firstName = this.calculateSimilarity(
+      this.extractedData.firstName.toLowerCase(),
+      user.firstName.toLowerCase()
+    );
+  }
+  
+  if (this.extractedData.lastName && user.lastName) {
+    similarities.lastName = this.calculateSimilarity(
+      this.extractedData.lastName.toLowerCase(),
+      user.lastName.toLowerCase()
+    );
+  }
+  
+  return similarities;
+};
+
+// Método para calcular similitud entre strings
+verificationSchema.methods.calculateSimilarity = function(str1, str2) {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) return 1.0;
+  
+  return (longer.length - this.editDistance(longer, shorter)) / parseFloat(longer.length);
+};
+
+// Distancia de edición para cálculo de similitud
+verificationSchema.methods.editDistance = function(s1, s2) {
+  s1 = s1.toLowerCase();
+  s2 = s2.toLowerCase();
+
+  const costs = [];
+  for (let i = 0; i <= s1.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= s2.length; j++) {
+      if (i === 0) {
+        costs[j] = j;
+      } else {
+        if (j > 0) {
+          let newValue = costs[j - 1];
+          if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+          }
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
+        }
+      }
+    }
+    if (i > 0) costs[s2.length] = lastValue;
+  }
+  return costs[s2.length];
 };
 
 module.exports = mongoose.model('Verification', verificationSchema);

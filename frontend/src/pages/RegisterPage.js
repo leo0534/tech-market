@@ -2,15 +2,30 @@ import RegisterForm from '../components/auth/RegisterForm';
 
 class RegisterPage {
   constructor() {
-    this.render();
+    this.registerForm = new RegisterForm();
+    this.initialized = false;
   }
 
   render() {
     return `
       <div class="container py-5">
-        ${new RegisterForm().render()}
+        ${this.registerForm.render()}
       </div>
     `;
+  }
+
+  init() {
+    if (!this.initialized) {
+      this.registerForm.init();
+      this.initialized = true;
+    }
+  }
+
+  destroy() {
+    if (this.initialized && this.registerForm.destroy) {
+      this.registerForm.destroy();
+    }
+    this.initialized = false;
   }
 }
 
