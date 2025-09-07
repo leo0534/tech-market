@@ -1,86 +1,123 @@
-const CryptoJS = require('crypto-js');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
-// Cifrado AES-256 para datos sensibles
-const encryptData = (data, key = process.env.ENCRYPTION_KEY) => {
-  if (!key) {
-    throw new Error('Encryption key not configured');
-  }
-  
-  return CryptoJS.AES.encrypt(JSON.stringify(data), key).toString();
-};
+// Configuración
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 16;
+const SALT_LENGTH = 64;
+const TAG_LENGTH = 16;
+const KEY_LENGTH = 32;
 
-const decryptData = (encryptedData, key = process.env.ENCRYPTION_KEY) => {
-  if (!key) {
-    throw new Error('Encryption key not configured');
-  }
-  
-  const bytes = CryptoJS.AES.decrypt(encryptedData, key);
-  return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-};
+// Generar clave de encriptación desde una semilla
+function deriveKeyFromSecret(secret, salt) {
+    return crypto.pbkdf2Sync(secret, salt, 100000, KEY_LENGTH, 'sha512');
+}
 
-// Validación de cédula colombiana
-const validateColombianId = (cedula) => {
-  // En desarrollo/testing, aceptar cualquier cédula numérica de 6-10 dígitos
-  if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
-    if (!/^\d{6,10}$/.test(cedula)) {
-      return {
-        isValid: false,
-        message: 'La cédula debe contener entre 6 y 10 dígitos numéricos'
-      };
+// Encriptar datos
+function encryptData(text, secret) {
+    try {
+        const salt = crypto.randomBytes(SALT_LENGTH);
+        const key = deriveKeyFromSecret(secret, salt);
+        const iv = crypto.randomBytes(IV_LENGTH);
+        
+        const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+        
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        
+        const tag = cipher.getAuthTag();
+        
+        // Combinar salt, iv, tag y datos encriptados
+        const encryptedData = Buffer.concat([salt, iv, tag, Buffer.from(encrypted, 'hex')]);
+        
+        return encryptedData.toString('base64');
+    } catch (error) {
+        console.error('Error en encriptación:', error);
+        throw new Error('Error al encriptar los datos');
     }
-    return {
-      isValid: true,
-      message: 'Cédula válida (modo desarrollo)'
-    };
-  }
+}
 
-  // En producción, usar validación estricta
-  if (!/^\d{6,10}$/.test(cedula)) {
-    return {
-      isValid: false,
-      message: 'La cédula debe contener entre 6 y 10 dígitos numéricos'
-    };
-  }
+// Desencriptar datos
+function decryptData(encryptedData, secret) {
+    try {
+        const dataBuffer = Buffer.from(encryptedData, 'base64');
+        
+        // Extraer componentes
+        const salt = dataBuffer.subarray(0, SALT_LENGTH);
+        const iv = dataBuffer.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+        const tag = dataBuffer.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
+        const encryptedText = dataBuffer.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
+        
+        const key = deriveKeyFromSecret(secret, salt);
+        
+        const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+        decipher.setAuthTag(tag);
+        
+        let decrypted = decipher.update(encryptedText, null, 'utf8');
+        decrypted += decipher.final('utf8');
+        
+        return decrypted;
+    } catch (error) {
+        console.error('Error en desencriptación:', error);
+        throw new Error('Error al desencriptar los datos');
+    }
+}
 
-  // Algoritmo para producción aquí...
-  return validateCedula10Digits(cedula);
-};
-
-// Algoritmo específico para cédulas de 10 dígitos
-const validateCedula10Digits = (cedula) => {
-  const digits = cedula.split('').map(Number);
-  
-  // Coeficientes para algoritmo de verificación
-  const coefficients = [3, 7, 13, 17, 19, 23, 29, 37, 41, 43];
-  let total = 0;
-  
-  // Sumar producto de cada dígito por su coeficiente (excepto el último)
-  for (let i = 0; i < 9; i++) {
-    total += digits[i] * coefficients[i];
-  }
-  
-  // Calcular dígito verificador
-  const calculatedDigit = total % 11;
-  const isValid = calculatedDigit === digits[9];
-  
-  return {
-    isValid,
-    message: isValid ? 'Cédula válida' : 'Cédula inválida - Dígito verificador incorrecto'
-  };
-};
-
-// Generar hash seguro para documentos
-const generateDocumentHash = (documentNumber, salt = process.env.DOCUMENT_SALT) => {
-  if (!salt) {
-    throw new Error('Document salt not configured');
+// Generar hash seguro para documentos (irreversible)
+function generateDocumentHash(documentNumber) {
+  if (!documentNumber) {
+    throw new Error('Número de documento requerido para generar hash');
   }
   
-  return CryptoJS.SHA256(documentNumber + salt).toString();
-};
+  // Usar bcrypt para hashing seguro
+  const salt = bcrypt.genSaltSync(12);
+  return bcrypt.hashSync(documentNumber.toString(), salt);
+}
+
+// Verificar hash de documento
+function verifyDocumentHash(documentNumber, hash) {
+    if (!documentNumber || !hash) {
+        return false;
+    }
+    
+    return bcrypt.compareSync(documentNumber.toString(), hash);
+}
+
+// Generar token seguro
+function generateSecureToken(length = 32) {
+    return crypto.randomBytes(length).toString('hex');
+}
+
+// Hash de contraseña
+async function hashPassword(password) {
+    const saltRounds = 12;
+    return await bcrypt.hash(password, saltRounds);
+}
+
+// Verificar contraseña
+async function verifyPassword(password, hash) {
+    return await bcrypt.compare(password, hash);
+}
+
+// Generar código OTP seguro
+function generateOTP(length = 6) {
+    const digits = '0123456789';
+    let OTP = '';
+    
+    for (let i = 0; i < length; i++) {
+        OTP += digits[Math.floor(Math.random() * 10)];
+    }
+    
+    return OTP;
+}
 
 module.exports = {
-  encryptData,
-  decryptData,
-  validateColombianId,
-  generateDocumentHash
+    encryptData,
+    decryptData,
+    generateDocumentHash,
+    verifyDocumentHash,
+    generateSecureToken,
+    hashPassword,
+    verifyPassword,
+    generateOTP
 };

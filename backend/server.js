@@ -38,7 +38,13 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Cache-Control', // ✅ Añadir este header
+    'Pragma'
+  ]
 };
 app.use(cors(corsOptions));
 
@@ -138,12 +144,12 @@ const connectDatabase = async () => {
 
 // 14. Importar y usar rutas
 const authRoutes = require('./src/routes/auth');
-const verificationRoutes = require('./src/routes/verification');
+const verificationRoutes = require('./src/routes/verification'); // Cambiado a 'verifications'
 const productRoutes = require('./src/routes/products');
 
 // Usar rutas - ORDEN CORRECTO
 app.use('/api/auth', authRoutes);
-app.use('/api/auth/verify', verificationRoutes);
+app.use('/api/auth/verify', verificationRoutes); // Esta ruta ahora manejará /api/auth/verify/start
 app.use('/api/products', productRoutes);
 
 // 15. Middleware para debug de rutas
