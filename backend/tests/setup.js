@@ -1,23 +1,33 @@
+// backend/tests/setup.js
 const mongoose = require('mongoose');
-const { initializeApp, closeServer } = require('../server');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
-// Timeout aumentado para MongoDB Atlas
-jest.setTimeout(30000);
+let mongoServer;
 
 // Configuración global antes de todas las pruebas
 beforeAll(async () => {
-  // Cargar variables de entorno de test
-  require('dotenv').config({ path: '.env.test' });
+  // Usar MongoDB en memoria para pruebas
+  mongoServer = await MongoMemoryServer.create();
+  const mongoUri = mongoServer.getUri();
   
-  // Inicializar la aplicación (conexión a DB y servidor)
-  await initializeApp();
+  // Configurar mongoose para usar la DB en memoria
+  await mongoose.connect(mongoUri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+  
+  console.log('✅ MongoDB en memoria iniciado para pruebas');
 }, 30000);
 
 // Limpieza después de todas las pruebas
 afterAll(async () => {
-  // Cerrar servidor
-  await closeServer();
-  
   // Cerrar conexión de MongoDB
   await mongoose.connection.close();
+  
+  // Detener servidor en memoria
+  if (mongoServer) {
+    await mongoServer.stop();
+  }
+  
+  console.log('✅ MongoDB en memoria detenido');
 }, 30000);

@@ -7,12 +7,18 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         node-version: [18.x, 20.x]
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: test_jwt_secret_super_seguro_para_pruebas_12345
+      JWT_REFRESH_SECRET: test_refresh_secret_super_seguro_para_pruebas_67890
+      PORT: 3002
 
     steps:
     - uses: actions/checkout@v4
@@ -29,15 +35,83 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y tesseract-ocr tesseract-ocr-spa
+        echo "✅ Tesseract OCR instalado"
+        tesseract --version
 
-    - name: Install dependencies (Backend)
+    - name: Install backend dependencies
       run: |
         cd backend
         npm ci
 
-    - name: Run tests (Backend)
-      env:
-        MONGODB_URI: ${{ secrets.MONGO_URI }}
+    - name: Install MongoDB Memory Server (para pruebas)
       run: |
         cd backend
-        npm test
+        npm install --save-dev mongodb-memory-server
+
+    - name: Create test environment file
+      run: |
+        cd backend
+        echo "NODE_ENV=test" > .env.test
+        echo "JWT_SECRET=test_jwt_secret_super_seguro_para_pruebas_12345" >> .env.test
+        echo "JWT_REFRESH_SECRET=test_refresh_secret_super_seguro_para_pruebas_67890" >> .env.test
+        echo "PORT=3002" >> .env.test
+        echo "COOKIE_DOMAIN=localhost" >> .env.test
+        echo "✅ Archivo .env.test creado"
+
+    - name: Run tests with coverage
+      run: |
+        cd backend
+        npm test -- --coverage --detectOpenHandles --forceExit
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  # Build del frontend (si es necesario) - AHORA ES UN JOB SEPARADO
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+
+    - name: Install frontend dependencies
+      run: npm ci
+
+    - name: Build frontend
+      run: npm run build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-build
+        path: dist/
+
+  # Trabajo de despliegue (opcional)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test, build-frontend]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: frontend-build
+        path: dist/
+
+    - name: Deploy to production
+      run: echo "🚀 Despliegue a producción"

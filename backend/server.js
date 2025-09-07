@@ -121,35 +121,52 @@ app.get('/api/info', (req, res) => {
   });
 });
 
-// 13. Conexión a MongoDB Atlas
+// 13. Conexión a MongoDB Atlas - MODIFICADA PARA JEST
 const connectDatabase = async () => {
   try {
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        retryWrites: true,
-        w: 'majority'
-      });
+      const mongoUri = process.env.MONGO_URI;
       
-      if (process.env.NODE_ENV !== 'test') {
+      // ✅ SOLUCIÓN: Validar que MONGO_URI existe en modo no-test
+      if (!mongoUri && process.env.NODE_ENV !== 'test') {
+        throw new Error('MONGO_URI no está definida en las variables de entorno');
+      }
+      
+      // ✅ SOLUCIÓN: Solo conectar si no estamos en modo test o si hay URI
+      if (process.env.NODE_ENV !== 'test' && mongoUri) {
+        await mongoose.connect(mongoUri, {
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+          retryWrites: true,
+          w: 'majority'
+        });
+        
         console.log('✅ Conectado a MongoDB Atlas exitosamente');
+      } else if (process.env.NODE_ENV === 'test') {
+        // ✅ En modo test, la conexión se maneja en tests/setup.js
+        console.log('🟡 Modo test: Conexión a DB manejada por Jest');
       }
     }
   } catch (error) {
     console.error('❌ Error de conexión a MongoDB Atlas:', error.message);
-    process.exit(1);
+    
+    // ✅ SOLUCIÓN: En modo test, no salir del proceso (solo lanzar error)
+    if (process.env.NODE_ENV === 'test') {
+      throw error; // Jest atrapará este error
+    } else {
+      process.exit(1);
+    }
   }
 };
 
 // 14. Importar y usar rutas
 const authRoutes = require('./src/routes/auth');
-const verificationRoutes = require('./src/routes/verification'); // Cambiado a 'verifications'
+const verificationRoutes = require('./src/routes/verification');
 const productRoutes = require('./src/routes/products');
 
 // Usar rutas - ORDEN CORRECTO
 app.use('/api/auth', authRoutes);
-app.use('/api/auth/verify', verificationRoutes); // Esta ruta ahora manejará /api/auth/verify/start
+app.use('/api/auth/verify', verificationRoutes);
 app.use('/api/products', productRoutes);
 
 // 15. Middleware para debug de rutas
@@ -208,14 +225,19 @@ app.use('*', (req, res) => {
 // 19. Función para iniciar el servidor
 const startServer = () => {
   return new Promise((resolve, reject) => {
+    // ✅ SOLUCIÓN: No iniciar servidor en modo test
+    if (process.env.NODE_ENV === 'test') {
+      console.log('🟡 Modo test: Servidor no iniciado (manejado por Jest)');
+      resolve({}); // Resolver con objeto vacío para tests
+      return;
+    }
+    
     server = app.listen(PORT, '0.0.0.0', () => {
-      if (process.env.NODE_ENV !== 'test') {
-        console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
-        console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`🌐 Health check: http://localhost:${PORT}/health`);
-        console.log(`🔐 Verification test: http://localhost:${PORT}/api/auth/verify/test`);
-        console.log(`📧 API Base: http://localhost:${PORT}/api`);
-      }
+      console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
+      console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🌐 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔐 Verification test: http://localhost:${PORT}/api/auth/verify/test`);
+      console.log(`📧 API Base: http://localhost:${PORT}/api`);
       resolve(server);
     }).on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
@@ -257,7 +279,13 @@ const initializeApp = async () => {
     }
   } catch (error) {
     console.error('Error inicializando la aplicación:', error);
-    process.exit(1);
+    
+    // ✅ SOLUCIÓN: En modo test, no salir del proceso
+    if (process.env.NODE_ENV === 'test') {
+      throw error; // Jest manejará este error
+    } else {
+      process.exit(1);
+    }
   }
 };
 
