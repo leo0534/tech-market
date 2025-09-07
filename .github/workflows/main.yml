@@ -10,13 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: backend
-
     strategy:
       matrix:
-        node-version: [20.x] # solo Node 20 para evitar error en 18.x
+        node-version: [18.x, 20.x]
 
     steps:
     - uses: actions/checkout@v4
@@ -27,16 +23,21 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
         cache-dependency-path: backend/package-lock.json
-        
+
+    # Instalar Tesseract OCR en el runner
     - name: Install Tesseract OCR
       run: |
         sudo apt-get update
         sudo apt-get install -y tesseract-ocr tesseract-ocr-spa
-    
+
     - name: Install dependencies (Backend)
-      run: npm ci
-        
+      run: |
+        cd backend
+        npm ci
+
     - name: Run tests (Backend)
       env:
-        MONGODB_URI: ${{ secrets.MONGODB_URI }}
-      run: npm test
+        MONGODB_URI: ${{ secrets.MONGO_URI }}
+      run: |
+        cd backend
+        npm test
