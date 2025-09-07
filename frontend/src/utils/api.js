@@ -121,6 +121,19 @@ export const getUserProducts = async () => {
   }
 };
 
+export const startVerification = async (formData) => {
+  try {
+    const response = await api.post('/auth/verify/start', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
 // User functions
 export const getProfile = () => api.get('/auth/profile');
 export const updateProfile = (userData) => api.put('/auth/profile', userData);

@@ -6,6 +6,7 @@ class Navbar {
     this.user = getCurrentUser();
     this.initialized = false;
     this.logoutHandler = this.handleLogout.bind(this);
+    this.verificationUpdateHandler = this.handleVerificationUpdate.bind(this);
   }
 
   render() {
@@ -46,12 +47,10 @@ class Navbar {
                      id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false"
                      onclick="event.stopPropagation()">
                     <i class="bi bi-person-circle"></i> ${user.firstName || 'Usuario'}
-                    ${isVerified ? 
-                      '<span class="badge bg-success ms-1">Verificado</span>' : 
-                      verificationStatus === 'pending' ?
-                      '<span class="badge bg-warning ms-1">En Verificación</span>' :
-                      '<span class="badge bg-secondary ms-1">No Verificado</span>'
-                    }
+                    <span class="verification-status ms-1 ${isVerified ? 'text-success' : 'text-danger'}">
+                      <i class="bi ${isVerified ? 'bi-patch-check-fill' : 'bi-exclamation-triangle-fill'}"></i>
+                      ${isVerified ? 'Verificado' : 'No verificado'}
+                    </span>
                   </a>
                   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                     <li><a class="dropdown-item" href="/profile" data-link>Mi Perfil</a></li>
@@ -86,7 +85,50 @@ class Navbar {
   setupEventListeners() {
     if (!this.initialized) {
       document.addEventListener('click', this.logoutHandler);
+      window.addEventListener('userVerificationUpdated', this.verificationUpdateHandler);
       this.initialized = true;
+    }
+  }
+
+  handleVerificationUpdate(event) {
+    console.log('🔄 Evento de verificación recibido en Navbar');
+    this.updateVerificationStatus(event.detail.isVerified);
+  }
+
+  updateVerificationStatus(isVerified) {
+    console.log('🎯 Actualizando estado de verificación en Navbar:', isVerified);
+    
+    // Actualizar usuario en localStorage
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const updatedUser = {
+      ...currentUser,
+      isVerified: isVerified,
+      verificationStatus: isVerified ? 'verified' : 'not_verified'
+    };
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    this.user = updatedUser;
+    
+    // Actualizar UI
+    const verificationBadge = document.querySelector('.verification-status');
+    if (verificationBadge) {
+      if (isVerified) {
+        verificationBadge.innerHTML = '<i class="bi bi-patch-check-fill"></i> Verificado';
+        verificationBadge.classList.remove('text-danger');
+        verificationBadge.classList.add('text-success');
+      } else {
+        verificationBadge.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> No verificado';
+        verificationBadge.classList.remove('text-success');
+        verificationBadge.classList.add('text-danger');
+      }
+    }
+    
+    // Actualizar dropdown
+    const dropdown = document.querySelector('.dropdown-menu');
+    if (dropdown) {
+      const verificationLink = dropdown.querySelector('a[href="/verification"]');
+      if (verificationLink) {
+        verificationLink.style.display = isVerified ? 'none' : 'block';
+      }
     }
   }
 
@@ -103,11 +145,8 @@ class Navbar {
 
   init() {
     this.setupEventListeners();
-    
-    // Inicializar dropdowns manualmente
     this.initializeDropdowns();
     
-    // Cerrar dropdowns al hacer clic fuera
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.dropdown')) {
         this.closeAllDropdowns();
@@ -120,7 +159,6 @@ class Navbar {
       const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
       
       dropdownToggles.forEach(toggle => {
-        // Clonar y reemplazar para evitar duplicados
         const clone = toggle.cloneNode(true);
         toggle.parentNode.replaceChild(clone, toggle);
         
@@ -149,6 +187,7 @@ class Navbar {
   destroy() {
     if (this.initialized) {
       document.removeEventListener('click', this.logoutHandler);
+      window.removeEventListener('userVerificationUpdated', this.verificationUpdateHandler);
       this.initialized = false;
     }
   }

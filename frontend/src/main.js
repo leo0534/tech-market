@@ -12,6 +12,43 @@ import RegisterPage from './pages/RegisterPage.js';
 import ProductsPage from './pages/ProductsPage.js';
 import VerificationPage from './pages/VerificationPage.js';
 
+// Función global para verificar estado
+window.checkVerificationStatus = async () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return false;
+    
+    const response = await fetch('http://localhost:3000/api/auth/verify/status', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      if (result.data.status === 'approved' || result.data.status === 'verified') {
+        const updatedUser = { 
+          ...user, 
+          isVerified: true, 
+          verificationStatus: 'verified' 
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Disparar evento global
+        window.dispatchEvent(new CustomEvent('userVerificationUpdated', {
+          detail: { isVerified: true }
+        }));
+        
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error('Error verificando estado:', error);
+    return false;
+  }
+};
+
 async function loadPage(pageName) {
   try {
     console.log(`📦 Cargando ${pageName}...`);
@@ -42,10 +79,9 @@ async function initializeApp() {
   console.log('🚀 Inicializando aplicación...');
   
   try {
-    const [CreateProductPage, ProfilePage, VerificationPage] = await Promise.all([
+    const [CreateProductPage, ProfilePage] = await Promise.all([
       loadPage('CreateProductPage'),
-      loadPage('ProfilePage'),
-      loadPage('VerificationPage')
+      loadPage('ProfilePage')
     ]);
     
     // 1. Inicializar navbar primero
@@ -54,6 +90,7 @@ async function initializeApp() {
     if (navbarContainer) {
       navbarContainer.innerHTML = navbar.render();
       navbar.init();
+      window.NavbarComponent = navbar; // Hacerlo global
     }
 
     // 2. Crear router después
@@ -90,7 +127,7 @@ async function initializeApp() {
   }
 }
 
-// Manejo de enlaces de emergencia (solo si window.router existe)
+// Manejo de enlaces de emergencia
 function setupGlobalLinkHandler() {
   document.addEventListener('click', function(e) {
     const link = e.target.closest('[data-link]');
@@ -108,7 +145,6 @@ function setupGlobalLinkHandler() {
       if (window.router && typeof window.router.navigate === 'function') {
         window.router.navigate(href);
       } else {
-        // Fallback básico
         window.history.pushState({}, '', href);
         window.dispatchEvent(new Event('popstate'));
       }

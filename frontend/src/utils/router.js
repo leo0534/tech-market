@@ -6,7 +6,7 @@ class Router {
     this.routes = {};
     this.currentComponent = null;
     this.isRendering = false;
-    this.navigationQueue = []; // Cola para manejar navegaciones
+    this.navigationQueue = [];
     
     this.currentPath = this.getCleanPath(window.location.pathname);
     console.log('🔄 Router creado');
@@ -32,7 +32,6 @@ class Router {
   }
 
   async navigate(path) {
-    // Si ya está renderizando, encolar la navegación
     if (this.isRendering) {
       console.log('⏸️  Navegación encolada (ya en renderizado):', path);
       this.navigationQueue.push(path);
@@ -49,7 +48,6 @@ class Router {
     this.currentPath = cleanPath;
     await this.render();
     
-    // Procesar cola de navegación después de terminar
     if (this.navigationQueue.length > 0) {
       const nextPath = this.navigationQueue.shift();
       setTimeout(() => this.navigate(nextPath), 100);
@@ -63,10 +61,14 @@ class Router {
       return false;
     }
 
-    if (route.verified && !isVerified()) {
-      console.log('🔒 Redirigiendo a verification - requiere verificación');
-      setTimeout(() => this.navigate('/verification'), 10);
-      return false;
+    if (route.verified) {
+      // Verificar estado actualizado en localStorage primero
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!user.isVerified) {
+        console.log('🔒 Redirigiendo a verification - requiere verificación');
+        setTimeout(() => this.navigate('/verification'), 10);
+        return false;
+      }
     }
 
     return true;
@@ -167,7 +169,6 @@ class Router {
       if (link && link.hasAttribute('href')) {
         const href = link.getAttribute('href');
         
-        // Ignorar enlaces especiales y dropdowns
         if (href === '#' || href === 'javascript:void(0)' || 
             link.classList.contains('dropdown-toggle')) {
           return;
