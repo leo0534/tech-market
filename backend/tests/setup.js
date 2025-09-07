@@ -1,6 +1,7 @@
-// backend/tests/setup.js
+// tests/setup.js
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const { clearDatabase } = require('./testUtils');
 
 let mongoServer;
 
@@ -17,7 +18,15 @@ beforeAll(async () => {
   });
   
   console.log('✅ MongoDB en memoria iniciado para pruebas');
+  
+  // ✅ Limpiar base de datos antes de comenzar
+  await clearDatabase();
 }, 30000);
+
+// ✅ Limpiar después de cada suite de tests
+afterEach(async () => {
+  await clearDatabase();
+});
 
 // Limpieza después de todas las pruebas
 afterAll(async () => {

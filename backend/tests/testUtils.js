@@ -1,4 +1,6 @@
-const { User, Verification } = require('../src/models'); // ← Añadir /src/
+const { User, Verification } = require('../src/models');
+const jwt = require('jsonwebtoken');
+const request = require('supertest');
 
 // Limpiar base de datos completamente
 const clearDatabase = async () => {
@@ -14,12 +16,15 @@ const clearDatabase = async () => {
 
 // Crear usuario de prueba
 const createTestUser = async (userData = {}) => {
+  const uniqueEmail = `test${Date.now()}@example.com`;
+  
   const defaultUser = {
-    email: 'test@example.com',
+    email: uniqueEmail,
     password: 'password123',
     firstName: 'Test',
     lastName: 'User',
-    phone: '+573001234567'
+    phone: '+573001234567',
+    isVerified: false
   };
 
   const user = new User({ ...defaultUser, ...userData });
@@ -27,33 +32,21 @@ const createTestUser = async (userData = {}) => {
   return user;
 };
 
-// Obtener token de autenticación
-const getAuthToken = async (app, userCredentials = null) => {
-  const credentials = userCredentials || {
-    email: 'test@example.com',
-    password: 'password123'
-  };
-
-  // Crear usuario si no existe
-  let user = await User.findOne({ email: credentials.email });
-  if (!user) {
-    user = await createTestUser(credentials);
-  }
-
-  // Hacer login
-  const response = await require('supertest')(app)
+// Obtener token mediante login real
+const loginAndGetToken = async (app, email, password) => {
+  const response = await request(app)
     .post('/api/auth/login')
-    .send(credentials);
-
+    .send({ email, password });
+  
   if (response.status !== 200) {
     throw new Error(`Login failed: ${JSON.stringify(response.body)}`);
   }
-
+  
   return response.body.data.accessToken;
 };
 
 module.exports = {
   clearDatabase,
   createTestUser,
-  getAuthToken
+  loginAndGetToken
 };

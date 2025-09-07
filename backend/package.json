@@ -42,7 +42,7 @@
     "express-validator": "^7.2.1",
     "helmet": "^7.0.0",
     "hpp": "^0.2.3",
-    "joi": "^18.0.1",
+    "joi": "^18.0.1",  
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
     "morgan": "^1.10.0",
@@ -59,33 +59,8 @@
     "prettier": "^3.0.3",
     "supertest": "^6.3.4"
   },
-  "jest": {
-    "testEnvironment": "node",
-    "setupFilesAfterEnv": [
-      "./tests/setup.js"
-    ],
-    "testMatch": [
-      "**/tests/**/*.test.js"
-    ],
-    "collectCoverageFrom": [
-      "src/**/*.js",
-      "!src/**/*.test.js",
-      "!src/models/index.js",
-      "!src/server.js"
-    ],
-    "coverageDirectory": "coverage",
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "clover"
-    ],
-    "verbose": true,
-    "forceExit": true,
-    "detectOpenHandles": true,
-    "testTimeout": 30000
-  },
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.0.0", 
     "npm": ">=8.0.0"
   }
 }
