@@ -11,13 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: test
-      JWT_SECRET: test_jwt_secret_super_seguro_para_pruebas_12345
-      JWT_REFRESH_SECRET: test_refresh_secret_super_seguro_para_pruebas_67890
+      # Usar Secrets de GitHub para las variables sensibles es la mejor práctica
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
       PORT: 3002
-
+    
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Use Node.js 20.x
       uses: actions/setup-node@v3
       with:
@@ -32,19 +33,19 @@ jobs:
         echo "✅ Tesseract OCR instalado"
 
     - name: Install backend dependencies
-      run: |
-        cd backend
-        npm install
+      # Usa 'npm ci' para una instalación limpia y reproducible
+      run: npm ci
+      working-directory: ./backend
 
-    # ✅ SOLUCIÓN 100% EFECTIVA: Ejecutar Jest directamente con Node
-    - name: Run tests with Node direct execution
-      run: |
-        cd backend
-        node node_modules/jest/bin/jest.js --config jest.config.js --runInBand --detectOpenHandles
+    - name: Run backend tests
+      # Usa 'npm test' si tienes el script de tests en tu package.json.
+      # Esto es más portable y menos propenso a errores.
+      run: npm test
+      working-directory: ./backend
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
       with:
-        file: ./backend/coverage/lcov.info
+        files: ./backend/coverage/lcov.info
         flags: backend
         fail_ci_if_error: false
