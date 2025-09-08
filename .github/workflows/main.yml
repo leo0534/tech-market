@@ -7,44 +7,34 @@ on:
     branches: [ main ]
 
 jobs:
-  test-backend:
+  test:
     runs-on: ubuntu-latest
-    env:
-      NODE_ENV: test
-      JWT_SECRET: test_jwt_secret_super_seguro_para_pruebas_12345
-      JWT_REFRESH_SECRET: test_refresh_secret_super_seguro_para_pruebas_67890
-      PORT: 3002
 
     steps:
     - uses: actions/checkout@v4
     
-    - name: Use Node.js 20.x
+    - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '20.x'
         cache: 'npm'
         cache-dependency-path: backend/package-lock.json
 
-    - name: Install Tesseract OCR
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y tesseract-ocr tesseract-ocr-spa
-        echo "✅ Tesseract OCR instalado"
+    - name: Install Tesseract
+      run: sudo apt-get install -y tesseract-ocr tesseract-ocr-spa
 
-    - name: Install backend dependencies
+    - name: Install dependencies
       run: |
         cd backend
         npm install
 
-    # ✅ SOLUCIÓN DEFINITIVA: Ejecutar Jest directamente con Node
-    - name: Run tests with Node
+    # ✅ EJECUTAR JEST DIRECTAMENTE
+    - name: Run tests
       run: |
         cd backend
-        node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js --runInBand --detectOpenHandles
+        npx jest --config jest.config.js --runInBand --detectOpenHandles
 
-    - name: Upload coverage reports
+    - name: Upload coverage
       uses: codecov/codecov-action@v3
       with:
         file: ./backend/coverage/lcov.info
-        flags: backend
-        fail_ci_if_error: false
