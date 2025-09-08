@@ -32,18 +32,17 @@ jobs:
         echo "✅ Tesseract OCR instalado"
         tesseract --version
 
-    # ✅ SOLUCIÓN: Usar npm install en lugar de npm ci
     - name: Install backend dependencies
       run: |
         cd backend
         npm install
 
-    - name: Verify Jest installation
+    # ✅ SOLUCIÓN DEFINITIVA: Dar permisos de ejecución
+    - name: Fix execution permissions
       run: |
         cd backend
-        echo "Verificando instalación de Jest..."
-        npm list jest
-        ls -la node_modules/.bin/ | grep jest
+        chmod +x node_modules/.bin/*
+        ls -la node_modules/.bin/jest
 
     - name: Create test environment file
       run: |
@@ -54,10 +53,11 @@ jobs:
         echo "PORT=3002" >> .env.test
         echo "COOKIE_DOMAIN=localhost" >> .env.test
 
-    - name: Run tests
+    # ✅ USAR npx EN LUGAR DEL SCRIPT DE npm
+    - name: Run tests with npx
       run: |
         cd backend
-        npm test
+        npx jest --config jest.config.js --runInBand --detectOpenHandles
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
