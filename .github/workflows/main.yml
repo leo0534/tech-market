@@ -32,17 +32,22 @@ jobs:
         echo "✅ Tesseract OCR instalado"
         tesseract --version
 
-    - name: Install backend dependencies
+    # ✅ SOLUCIÓN: Limpiar e instalar dependencias correctamente
+    - name: Clean and install dependencies
       run: |
         cd backend
-        npm install
+        # Limpiar cualquier instalación previa
+        rm -rf node_modules package-lock.json
+        # Instalar dependencias desde cero
+        npm ci --no-audit --no-fund
 
-    # ✅ SOLUCIÓN: Dar permisos de ejecución a los binarios de node_modules
-    - name: Fix permissions for node_modules
+    - name: Verify Jest installation
       run: |
         cd backend
-        chmod -R +x node_modules/.bin/
-        ls -la node_modules/.bin/ | grep jest  # Verificar que jest tenga permisos
+        echo "Verificando instalación de Jest..."
+        npm list jest
+        npm list jest-cli
+        ls -la node_modules/.bin/ | grep jest
 
     - name: Create test environment file
       run: |
@@ -53,10 +58,11 @@ jobs:
         echo "PORT=3002" >> .env.test
         echo "COOKIE_DOMAIN=localhost" >> .env.test
 
+    # ✅ USAR npm test EN LUGAR DE npx
     - name: Run tests
       run: |
         cd backend
-        npx jest --config jest.config.js --runInBand --detectOpenHandles
+        npm test
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
