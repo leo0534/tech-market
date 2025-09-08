@@ -9,16 +9,11 @@ on:
 jobs:
   test-backend:
     runs-on: ubuntu-latest
-    env:
-      NODE_ENV: test
-      JWT_SECRET: test_jwt_secret_super_seguro_para_pruebas_12345
-      JWT_REFRESH_SECRET: test_refresh_secret_super_seguro_para_pruebas_67890
-      PORT: 3002
 
     steps:
     - uses: actions/checkout@v4
     
-    - name: Use Node.js 20.x
+    - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '20.x'
@@ -29,39 +24,14 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y tesseract-ocr tesseract-ocr-spa
-        echo "✅ Tesseract OCR instalado"
-        tesseract --version
 
-    - name: Install backend dependencies
+    - name: Install and test
       run: |
         cd backend
         npm install
+        npm test
 
-    # ✅ SOLUCIÓN DEFINITIVA: Dar permisos de ejecución
-    - name: Fix execution permissions
-      run: |
-        cd backend
-        chmod +x node_modules/.bin/*
-        ls -la node_modules/.bin/jest
-
-    - name: Create test environment file
-      run: |
-        cd backend
-        echo "NODE_ENV=test" > .env.test
-        echo "JWT_SECRET=test_jwt_secret_super_seguro_para_pruebas_12345" >> .env.test
-        echo "JWT_REFRESH_SECRET=test_refresh_secret_super_seguro_para_pruebas_67890" >> .env.test
-        echo "PORT=3002" >> .env.test
-        echo "COOKIE_DOMAIN=localhost" >> .env.test
-
-    # ✅ USAR npx EN LUGAR DEL SCRIPT DE npm
-    - name: Run tests with npx
-      run: |
-        cd backend
-        npx jest --config jest.config.js --runInBand --detectOpenHandles
-
-    - name: Upload coverage reports
+    - name: Upload coverage
       uses: codecov/codecov-action@v3
       with:
         file: ./backend/coverage/lcov.info
-        flags: backend
-        fail_ci_if_error: false
