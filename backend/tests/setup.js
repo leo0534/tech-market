@@ -5,6 +5,12 @@ const { clearDatabase } = require('./testUtils');
 
 let mongoServer;
 
+// --- AÑADIDO: CONFIGURACIÓN DE VARIABLES DE ENTORNO PARA JEST ---
+// Esto asegura que las variables JWT_SECRET y JWT_REFRESH_SECRET estén disponibles para todas las pruebas.
+process.env.JWT_SECRET = 'test_jwt_secret_para_pruebas_12345';
+process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_para_pruebas_67890';
+// ---------------------------------------------------------------
+
 // Configuración global antes de todas las pruebas
 beforeAll(async () => {
   // Usar MongoDB en memoria para pruebas
