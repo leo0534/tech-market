@@ -32,21 +32,17 @@ jobs:
         echo "✅ Tesseract OCR instalado"
         tesseract --version
 
-    # ✅ SOLUCIÓN: Limpiar e instalar dependencias correctamente
-    - name: Clean and install dependencies
+    # ✅ SOLUCIÓN: Usar npm install en lugar de npm ci
+    - name: Install backend dependencies
       run: |
         cd backend
-        # Limpiar cualquier instalación previa
-        rm -rf node_modules package-lock.json
-        # Instalar dependencias desde cero
-        npm ci --no-audit --no-fund
+        npm install
 
     - name: Verify Jest installation
       run: |
         cd backend
         echo "Verificando instalación de Jest..."
         npm list jest
-        npm list jest-cli
         ls -la node_modules/.bin/ | grep jest
 
     - name: Create test environment file
@@ -58,7 +54,6 @@ jobs:
         echo "PORT=3002" >> .env.test
         echo "COOKIE_DOMAIN=localhost" >> .env.test
 
-    # ✅ USAR npm test EN LUGAR DE npx
     - name: Run tests
       run: |
         cd backend
