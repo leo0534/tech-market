@@ -1,5 +1,6 @@
 import { isAuthenticated, getCurrentUser } from '../utils/auth';
 
+
 class HomePage {
   constructor() {
     this.initialized = false;
@@ -53,6 +54,7 @@ class HomePage {
               <p>Todos nuestros usuarios son verificados para tu seguridad.</p>
             </div>
           </div>
+         
 
           <div class="col-md-4 mb-4">
             <div class="text-center">
@@ -93,7 +95,6 @@ class HomePage {
   }
 
   init() {
-    // No necesita event listeners especiales
     this.initialized = true;
   }
 
